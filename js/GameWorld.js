@@ -34,20 +34,23 @@ class GameWorld {
         this.context.beginPath();
         this.gameObjects = [
             new Circle(this.context, 150, 50, 0, 50, 1),
-            // new Circle(this.context, 250, 300, 0, -50, 1),
-            // new Circle(this.context, 200, 0, 50, 50, 1),
-            // new Circle(this.context, 250, 150, 50, 50, 1),
-            // new Circle(this.context, 300, 75, -50, 50, 1),
-            // new Circle(this.context, 300, 300, 50, -50, 1),
-            // new Circle(this.context, 150, 50, 0, 50, 1),
-            // new Circle(this.context, 150, 200, 0, -50, 1),
-            // new Circle(this.context, 100, 0, 50, 50, 1),
-            // new Circle(this.context, 150, 250, 50, 50, 1),
-            // new Circle(this.context, 200, 175, -50, 50, 1),
-            // new Circle(this.context, 200, 100, 50, -50, 1),
+            new Circle(this.context, 250, 300, 0, -50, 1),
+            new Circle(this.context, 200, 0, 50, 50, 1),
+            new Circle(this.context, 250, 150, 50, 50, 1),
+            new Circle(this.context, 300, 75, -50, 50, 1),
+            new Circle(this.context, 300, 300, 50, -50, 1),
+            new Circle(this.context, 150, 50, 0, 50, 1),
+            new Circle(this.context, 150, 200, 0, -50, 1),
+            new Circle(this.context, 100, 0, 50, 50, 1),
+            new Circle(this.context, 150, 250, 50, 50, 1),
+            new Circle(this.context, 200, 175, -50, 50, 1),
+            new Circle(this.context, 200, 100, 50, -50, 1),
         ];
 
-        this.lines = [new Line(this.context, 100, 350, 250, 320, 1)];
+        this.lines = [
+            new Line(this.context, 100, 150, 250, 320, 1),
+            new Line(this.context, 500, 200, 350, 320, 1),
+        ];
     }
 
     gameLoop(timeStamp) {
@@ -88,17 +91,16 @@ class GameWorld {
         for (let i = 0; i < this.gameObjects.length; i++) {
             let obj1 = this.gameObjects[i];
             for (let line of this.lines) {
-                let isCollide = this.circleLineIntersect(obj1, line);
-                if (isCollide) {
-                    obj1.isColliding = true;
-                    // // Calculate the angle (vy before vx)
-                    // let radians = Math.atan2(obj1.vy, obj1.vx);
-
-                    // Convert to degrees
-                    // obj1.vx = obj1.vx * Math.sin(radians);
-                    // obj1.vy = obj1.vy * Math.cos(radians);
-                }
+                this.updateCircle(
+                    obj1,
+                    { x: line.x1, y: line.y1 },
+                    { x: line.x2, y: line.y2 }
+                );
             }
+        }
+
+        for (let i = 0; i < this.gameObjects.length; i++) {
+            let obj1 = this.gameObjects[i];
             for (let j = i + 1; j < this.gameObjects.length; j++) {
                 let obj2 = this.gameObjects[j];
 
@@ -167,6 +169,76 @@ class GameWorld {
         return squareDistance <= (r1 + r2) * (r1 + r2);
     }
 
+    updateCircle(circle, lineStart, lineEnd) {
+        // Check if the circle intersects the line
+        if (this.lineCircleIntersect(lineStart, lineEnd, circle)) {
+            circle.isColliding = true;
+            // Calculate the normal vector of the line
+            // var lineDir = {
+            //     x: lineEnd.x - lineStart.x,
+            //     y: lineEnd.y - lineStart.y,
+            // };
+            // var lineNormal = { x: lineDir.y, y: -lineDir.x }; // perpendicular to the line
+
+            // // Calculate the dot product of circle's velocity and the line's normal vector
+            // var dotProduct =
+            //     circle.vx * lineNormal.x + circle.vy * lineNormal.y;
+
+            // // Calculate the impulse (change in momentum) using the mass of the circle
+            // var impulse = (2 * dotProduct) / circle.mass;
+
+            // // Update circle's velocity using the impulse and line's normal vector
+            // circle.vx -= impulse * lineNormal.x;
+            // circle.vy -= impulse * lineNormal.y;
+
+            // // Apply friction to slow down the circle's velocity
+            // circle.vx *= restitution;
+            // circle.vy *= restitution;
+        }
+    }
+
+    lineCircleIntersect(lineStart, lineEnd, circle) {
+        var v1 = { x: lineEnd.x - lineStart.x, y: lineEnd.y - lineStart.y };
+        var v2 = { x: circle.x - lineStart.x, y: circle.y - lineStart.y };
+        var u = (v2.x * v1.x + v2.y * v1.y) / (v1.x * v1.x + v1.y * v1.y);
+
+        if (u >= 0 && u <= 1) {
+            var intersectionPoint = {
+                x: lineStart.x + u * v1.x,
+                y: lineStart.y + u * v1.y,
+            };
+            var dist = Math.sqrt(
+                Math.pow(intersectionPoint.x - circle.x, 2) +
+                    Math.pow(intersectionPoint.y - circle.y, 2)
+            );
+            if (dist <= circle.radius) {
+                let velocity = {
+                    x: circle.x - intersectionPoint.x,
+                    y: circle.y - intersectionPoint.y,
+                };
+
+                circle.vx = velocity.x;
+                circle.vy = velocity.y;
+
+                let collisionNormal = {
+                    x: velocity.x / dist,
+                    y: velocity.y / dist,
+                };
+                let cc = Math.abs(collisionNormal.x);
+                collisionNormal.y = collisionNormal.y;
+                collisionNormal.x = collisionNormal.x;
+                circle.x =
+                    intersectionPoint.x + collisionNormal.x * circle.radius;
+                circle.y =
+                    intersectionPoint.y + collisionNormal.y * circle.radius;
+                return true;
+                console.log("xxx");
+                return true;
+            }
+        }
+        return false;
+    }
+
     circleLineIntersect(circle, line) {
         let centrex = circle.x;
         let centrey = circle.y;
@@ -198,9 +270,11 @@ class GameWorld {
             if (k < len) {
                 if (c1sqr * len <= k * k) {
                     let radians = Math.atan2(e1y, e1x);
-                    let newAngle = Math.PI - circleAngle - radians;
-                    circle.vx = circle.vx * Math.cos(circleAngle);
-                    circle.vy = -1 * circle.vy * Math.sin(circleAngle);
+                    let newAngle = -radians + circleAngle;
+                    circle.vx = circle.vx * Math.cos(newAngle) * restitution;
+                    circle.vy = circle.vy * Math.sin(newAngle) * restitution;
+                    circle.x += circle.vx;
+                    circle.y += circle.vy;
                     console.log("111");
                     return true;
                 }

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Circle-Line Collision</title>
+    <style>
+        #canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <script>
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+
+        var circle = {
+            x: 50,
+            y: 20,
+            radius: 20,
+            dx: 3,
+            dy: 3
+        };
+
+        var gravity = 1;
+        var friction = 0.98;
+        var restitution = 0.9;
+
+        var linePoint1 = { x: 200, y: 200 };
+        var linePoint2 = { x: 600, y: 400 };
+
+        function drawCircle() {
+            ctx.beginPath();
+            ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'blue';
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawLine() {
+            ctx.beginPath();
+            ctx.moveTo(linePoint1.x, linePoint1.y);
+            ctx.lineTo(linePoint2.x, linePoint2.y);
+            ctx.strokeStyle = 'black';
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        function doesCircleCollideWithLineStay() {
+            var v1 = { x: linePoint2.x - linePoint1.x, y: linePoint2.y - linePoint1.y };
+            var v2 = { x: circle.x - linePoint1.x, y: circle.y - linePoint1.y };
+            var u = (v2.x * v1.x + v2.y * v1.y) / (v1.x * v1.x + v1.y * v1.y);
+
+            if (u >= 0 && u <= 1) {
+                var intersectionPoint = { x: linePoint1.x + u * v1.x, y: linePoint1.y + u * v1.y };
+                var dist = Math.sqrt(Math.pow(intersectionPoint.x - circle.x, 2) + Math.pow(intersectionPoint.y - circle.y, 2));
+                if (dist <= circle.radius) {
+                    console.log("xxx")
+                    var collisionNormal = {
+                        x: (circle.x - intersectionPoint.x) / dist,
+                        y: (circle.y - intersectionPoint.y) / dist
+                    };
+                    circle.x = intersectionPoint.x + collisionNormal.x * circle.radius;
+                    circle.y = intersectionPoint.y + collisionNormal.y * circle.radius;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function doesCircleCollideWithLine() {
+            var v1 = { x: linePoint2.x - linePoint1.x, y: linePoint2.y - linePoint1.y };
+            var v2 = { x: circle.x - linePoint1.x, y: circle.y - linePoint1.y };
+            var u = (v2.x * v1.x + v2.y * v1.y) / (v1.x * v1.x + v1.y * v1.y);
+
+            if (u >= 0 && u <= 1) {
+                var intersectionPoint = { x: linePoint1.x + u * v1.x, y: linePoint1.y + u * v1.y };
+                var dist = Math.sqrt(Math.pow(intersectionPoint.x - circle.x, 2) + Math.pow(intersectionPoint.y - circle.y, 2));
+                if (dist <= circle.radius) {
+                    let velocity = {
+                        x: (circle.x - intersectionPoint.x),
+                        y: (circle.y - intersectionPoint.y)}
+                    
+                    circle.dx = velocity.x * restitution;
+                    circle.dy = velocity.y * restitution;
+                    
+                    // let collisionNormal = {
+                    //     x: velocity.x / dist,
+                    //     y: velocity.y / dist
+                    // };
+                    // console.log("xxx : ", collisionNormal)
+                    // let cc = Math.abs(collisionNormal.x);
+                    // collisionNormal.y = collisionNormal.y / cc;
+                    // collisionNormal.x = collisionNormal.x / cc;
+                    // circle.x = intersectionPoint.x + collisionNormal.x * circle.radius;
+                    // circle.y = intersectionPoint.y + collisionNormal.y * circle.radius;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function normalizeVector(vector) {
+            var len = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+            return { x: vector.x / len, y: vector.y / len };
+        }
+
+        function getPostCollisionVelocity() {
+            var line = normalizeVector({ x: linePoint2.x - linePoint1.x, y: linePoint2.y - linePoint1.y });
+            var circleToLine = { x: circle.x - linePoint1.x, y: circle.y - linePoint1.y };
+            var dotProduct = (circleToLine.x * line.x + circleToLine.y * line.y);
+            var closestPointOnLine = { x: linePoint1.x + line.x * dotProduct, y: linePoint1.y + line.y * dotProduct };
+            var collisionNormal = { x: circle.x - closestPointOnLine.x, y: circle.y - closestPointOnLine.y };
+            var normalizedCollisionNormal = normalizeVector(collisionNormal);
+            return { x: -normalizedCollisionNormal.x * Math.abs(circle.dx), y: -normalizedCollisionNormal.y * Math.abs(circle.dy) };
+        }
+
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawCircle();
+            drawLine();
+
+            if (doesCircleCollideWithLine()) {
+                var velocity = getPostCollisionVelocity();
+                // circle.dx = velocity.x;
+                // circle.dy = velocity.y;
+            }
+
+            if (circle.y + circle.radius + circle.dy > canvas.height) {
+                circle.dy = -circle.dy * friction * restitution;
+            } else {
+                circle.dy += gravity;
+            }
+
+            if (circle.x + circle.radius + circle.dx > canvas.width || circle.x - circle.radius + circle.dx < 0) {
+                circle.dx = -circle.dx * restitution;
+            }
+
+            circle.x += circle.dx;
+            circle.y += circle.dy;
+
+            requestAnimationFrame(update);
+        }
+
+        update();
+    </script>
+</body>
+</html>
